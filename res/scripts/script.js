@@ -92,7 +92,7 @@ var Chat = function() {
   var connect = function() {
     var hostname = location.host;
     var protocol = location.protocol.split('http').join('ws') + '//';
-    var host = (host == '' || host == 'local.haver.chat') ? 'ws://127.0.0.1:8080' : protocol + location.host + '/soc';
+    var host = (hostname == '' || hostname == 'local.haver.chat') ? 'ws://127.0.0.1:8080' : protocol + location.host + '/soc';
     socket = new WebSocket(host);
     socket.onopen = open;
     socket.onclose = close;
