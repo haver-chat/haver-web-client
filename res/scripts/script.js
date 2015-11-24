@@ -194,10 +194,11 @@ var splashForm = function(callback) {
   var chat = document.querySelector("#chat");
   show(splash)
   hide(chat);
-  var h1 = document.querySelector("#splash h1");
+  var img = document.querySelector("#splash img");
+  var helper = document.querySelector("#splash .helper");
   var form = document.querySelector("#splash form");
-  h1.style.lineHeight = "48px";
-  h1.style.fontSize = "36px";
+  helper.style.height = "50px";
+  img.style.width = "140px";
   show(form);
   form.onsubmit = function(e) {
     e.preventDefault();
@@ -230,7 +231,11 @@ var resetSplash = function() {
   var splash = document.querySelector("#splash");
   splash.style.top = "0";
   splash.style.position = "initial";
+  var img = document.querySelector("#splash img");
+  var helper = document.querySelector("#splash .helper");
   var form = document.querySelector("#splash form");
+  helper.style.height = "100%";
+  img.style.width = "300px";
   hide(form);
 }
 
