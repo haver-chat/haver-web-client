@@ -66,8 +66,9 @@ var Chat = function() {
         receiveMessage(message.from, message.content);
         break;
       case types.ROOM_INFO:
-        var room = new RoomInfo("Test Room", 130);
-        send(types.ROOM_INFO, room);
+        roomInfoRequest(function(roomInfo) {
+          send(types.ROOM_INFO, roomInfo);
+        });
         break;
       case types.CLIENT_INFO:
         if (typeof message.clientName == 'undefined') {
@@ -76,6 +77,7 @@ var Chat = function() {
             receiveMessage('System', message.names[i] + ' has ' + status + ' the room');
           }
         } else {
+          joinRoom();
           receiveMessage('System', 'Welcome to ' + message.roomName + ', you are the ' + message.clientName);
           message.names.splice(message.names.indexOf(message.clientName), 1);
           if (message.names.length > 0) {
@@ -117,10 +119,27 @@ var Chat = function() {
   }
   
   function receiveMessage(from, content) {
-    exports.onmessage(escapeHtml(from), escapeHtml(content));
+    exports.onMessage(escapeHtml(from), escapeHtml(content));
   }
   
-  exports.onmessage = function(from, content) {
+  function roomInfoRequest(callback) {
+    exports.getRoomInfo(function(name, radius) {
+      callback(new RoomInfo(name, radius));
+    });
+  }
+  
+  function joinRoom() {
+    exports.onJoin();
+  }
+  
+  exports.onJoin = function() {
+    console.log("Joined room!");
+  }
+  
+  exports.getRoomInfo = function(callback) {
+    callback("Test Room", 150);
+  }
+  exports.onMessage = function(from, content) {
     console.log(from + ": " + content);
   }
   exports.send = function(message) {
@@ -136,7 +155,7 @@ var Chat = function() {
 
 var chat = Chat();
 chat.connect();
-chat.onmessage = function(from, content) {
+chat.onMessage = function(from, content) {
   var div = document.querySelector('#chat-list');
   var bottom = div.scrollTop + div.offsetHeight === div.scrollHeight;
   console.log("Adding messsage to UL");
@@ -146,6 +165,14 @@ chat.onmessage = function(from, content) {
   if (from != "System") li.firstChild.classList.add(from.split(" ")[0].toLowerCase());
   document.querySelector('#chat ul').appendChild(li);
   if (bottom) div.scrollTop = div.scrollHeight - div.offsetHeight;
+}
+chat.getRoomInfo = function(callback) {
+  splashForm(function(name, radius) {
+    callback(name, radius);
+  });
+}
+chat.onJoin = function() {
+  removeSplash();
 }
 document.querySelector("#chat-form").onsubmit = function(e) {
   e.preventDefault();
@@ -159,20 +186,81 @@ document.querySelector("#chat-form").onsubmit = function(e) {
   return false;
 }
 
-var splash = function() {
-  var h1 = document.querySelector("#splash h1")
+// SPLASH SCREEN:
+
+var splashForm = function(callback) {
+  resetSplash();
+  var splash = document.querySelector("#splash");
+  var chat = document.querySelector("#chat");
+  show(splash)
+  hide(chat);
+  var h1 = document.querySelector("#splash h1");
+  var form = document.querySelector("#splash form");
   h1.style.lineHeight = "48px";
-  h1.style.fontSize = "30px";
+  h1.style.fontSize = "36px";
+  show(form);
+  form.onsubmit = function(e) {
+    e.preventDefault();
+    try {
+      var name = document.querySelector("#splash form input[name=room-name]").value;
+      var radius = parseInt(document.querySelector("#splash form input[name=room-radius]").value);
+      callback(name, radius);
+    } catch(exception) {
+      throw new Error(exception.message);
+    }
+    return false;
+  }
 }
 
 var removeSplash = function() {
   var splash = document.querySelector("#splash");
-  splash.style.marginTop = "calc(-100vh - 20px)";
-  splash.style.position = "absolute";
   var chat = document.querySelector("#chat");
-  chat.classList.remove("hidden");
+  splash.style.position = "absolute";
+  splash.style.top = "calc(-100vh - 20px)";
+  splash.addEventListener(transitionEndEventName(), function() {
+    if (!splash.classList.contains("hidden")) {
+      hide(splash);
+      resetSplash();
+    }
+  }, false);
+  show(chat);
 }
 
-window.onload = function() {
-  removeSplash();
+var resetSplash = function() {
+  var splash = document.querySelector("#splash");
+  splash.style.top = "0";
+  splash.style.position = "initial";
+  var form = document.querySelector("#splash form");
+  hide(form);
+}
+
+document.querySelector("#splash input[name=room-radius]").addEventListener("input", function(e) {
+  document.querySelector("#radius-label").innerHTML = document.querySelector("#splash input[name=room-radius]").value;
+}, false);
+
+// OTHER FUNCTIONS:
+
+function hide(elem) {
+  if (!elem.classList.contains("hidden")) elem.classList.add("hidden");
+}
+
+function show(elem) {
+  if (elem.classList.contains("hidden")) elem.classList.remove("hidden");
+}
+
+function transitionEndEventName() {
+  var i,
+      undefined,
+      el = document.createElement('div'),
+      transitions = {
+        'transition':'transitionend',
+        'OTransition':'otransitionend',  // oTransitionEnd in very old Opera
+        'MozTransition':'transitionend',
+        'WebkitTransition':'webkitTransitionEnd'
+      };
+  for (i in transitions) {
+    if (transitions.hasOwnProperty(i) && el.style[i] !== undefined) {
+      return transitions[i];
+    }
+  }
 }
