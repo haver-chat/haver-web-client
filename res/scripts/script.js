@@ -141,7 +141,9 @@ chat.onmessage = function(from, content) {
   var bottom = div.scrollTop + div.offsetHeight === div.scrollHeight;
   console.log("Adding messsage to UL");
   var li = document.createElement('li');
-  li.innerHTML += "<span class=\"username\">" + from + "</span>: " + content;
+  li.innerHTML += "<span>" + from + "</span>: " + content;
+  li.firstChild.classList.add("username");
+  if (from != "System") li.firstChild.classList.add(from.split(" ")[0].toLowerCase());
   document.querySelector('#chat ul').appendChild(li);
   if (bottom) div.scrollTop = div.scrollHeight - div.offsetHeight;
 }

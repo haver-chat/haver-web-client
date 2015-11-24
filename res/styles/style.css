@@ -21,7 +21,7 @@
 body {
   margin: 0;
   font: 19px -apple-system, 'Lato', sans-serif;
-  background-color: #AED4DA;
+  background-color: #E6E6E6;
   color: #313F41;
 }
 
@@ -46,6 +46,25 @@ body {
   color: #41838D;
 }
 
+#chat-list span.blue {
+  color: #0000ff;
+}
+#chat-list span.green {
+  color: #00ff00;
+}
+#chat-list span.orange {
+  color: #ff6600;
+}
+#chat-list span.purple {
+  color: #800080;
+}
+#chat-list span.red {
+  color: #ff0000;
+}
+#chat-list span.yellow {
+  color: #ffff00;
+}
+
 #chat-form input[type=text] {
   font: 19px -apple-system, 'Lato', sans-serif;
   box-sizing: border-box;
@@ -55,8 +74,8 @@ body {
   padding: 15px;
   position: fixed;
   bottom: 0;
-  background-color: #58B2C0;
-  color: #313F41;
+  background-color: #B3B3B3;
+  color: #1A1A1A;
   border-radius: 0;
 }
 #chat-form input:focus {
