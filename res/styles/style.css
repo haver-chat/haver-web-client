@@ -8,7 +8,6 @@ body {
   font: 19px -apple-system, 'Lato', sans-serif;
   background-color: #F3F4F5;
   color: #565E65;
-  overflow-y: hidden;
 }
 
 input[type=text], input[type=submit] {
@@ -55,6 +54,7 @@ div.screen {
 }
 
 #splash {
+  overflow-y: hidden;
   top: 0;
   text-align: center;
   z-index: 100;
