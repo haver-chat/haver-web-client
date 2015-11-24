@@ -158,3 +158,21 @@ document.querySelector("#chat-form").onsubmit = function(e) {
   }
   return false;
 }
+
+var splash = function() {
+  var h1 = document.querySelector("#splash h1")
+  h1.style.lineHeight = "48px";
+  h1.style.fontSize = "30px";
+}
+
+var removeSplash = function() {
+  var splash = document.querySelector("#splash");
+  splash.style.marginTop = "calc(-100vh - 20px)";
+  splash.style.position = "absolute";
+  var chat = document.querySelector("#chat");
+  chat.classList.remove("hidden");
+}
+
+window.onload = function() {
+  removeSplash();
+}
