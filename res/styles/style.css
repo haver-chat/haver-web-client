@@ -51,6 +51,8 @@ div.screen {
 
 #chat {
   width: 100%;
+  word-wrap: break-word;
+  overflow-x: hidden;
 }
 
 #splash {
