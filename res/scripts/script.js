@@ -11,9 +11,8 @@ var Chat = function() {
   var states = {
     CLOSED: 0,
     OPEN: 1,
-    WAITING_ROOM_INFO: 2,
-    WAITING_CLIENT_INFO: 3,
-    READY: 4
+    WAITING: 2,
+    READY: 3
   };
   
   var state = states.CLOSED;
@@ -54,7 +53,7 @@ var Chat = function() {
     changeState(states.OPEN);
     getLocation(function(pos) {
       send(types.LOCATION, pos);
-      changeState(states.WAITING_ROOM_INFO);
+      changeState(states.WAITING);
     });
   }
   var close = function() {
@@ -82,11 +81,11 @@ var Chat = function() {
       case types.ROOM_INFO:
         exports.roomInfoRequest(function(name, radius) {
           send(types.ROOM_INFO, new RoomInfo(name, radius));
-          changeState(states.WAITING_CLIENT_INFO);
+          changeState(states.WAITING);
         });
         break;
       case types.CLIENT_INFO:
-        if (state == states.WAITING_CLIENT_INFO) {
+        if (state != states.READY) {
           changeState(states.READY);
           receiveMessage('System', 'Welcome to ' + message.roomName + ', you are the ' + message.clientName);
           message.names.splice(message.names.indexOf(message.clientName), 1);
@@ -140,9 +139,12 @@ var Chat = function() {
     }
   }
   
+  // Exports with example client:
   exports.states = states;
+  exports.state = state;
   exports.onStateChange = function(s) {
     console.log("Changed state!");
+    exports.state = state;
     switch(s) {
       case states.CLOSED:
         console.log("Not connected :(");
@@ -150,11 +152,8 @@ var Chat = function() {
       case states.OPEN:
         console.log("Connected!");
         break;
-      case states.WAITING_ROOM_INFO:
-        console.log("Waiting for room info request");
-        break;
-      case states.WAITING_CLIENT_INFO:
-        console.log("Server waiting for client info");
+      case states.WAITING:
+        console.log("Waiting on server message");
         break;
       case states.READY:
         console.log("Time to post!");
@@ -198,6 +197,7 @@ chat.roomInfoRequest = function(callback) {
 }
 chat.onStateChange = function(state) {
   var states = chat.states;
+  chat.state = state;
   switch(state) {
     case states.CLOSED:
       console.log("State change: CLOSED");
@@ -205,18 +205,17 @@ chat.onStateChange = function(state) {
       break;
     case states.OPEN:
       console.log("State change: OPEN");
-      console.log("Made connection!");
       break;
     case states.READY:
       console.log("State change: READY");
       resetChat();
       removeSplash();
       break;
-    case states.WAITING_ROOM_INFO:
-      console.log("State change: WAITING FOR ROOM INFO REQ");
+    case states.WAITING:
+      console.log("State change: WAITING FOR SERVER MESSAGE");
       break;
-    case states.WAITING_CLIENT_INFO:
-      console.log("State change: WAITING FOR CLIENT INFO");
+    default:
+      console.log("Undefined behaviour: invalid state");
       break;
   }
 }
