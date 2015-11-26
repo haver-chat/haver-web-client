@@ -8,6 +8,16 @@ var Chat = function() {
     CLIENT_INFO: 3
   };
   
+  var states = {
+    CLOSED: 0,
+    OPEN: 1,
+    WAITING_ROOM_INFO: 2,
+    WAITING_CLIENT_INFO: 3,
+    READY: 4
+  };
+  
+  var state = states.CLOSED;
+  
   function getLocation(callback) {
     function ret(pos) {
       if (typeof callback != 'undefined') {
@@ -30,7 +40,7 @@ var Chat = function() {
   
   var Post = function(content, to) {
     this.content = content.trim();
-    this.to = typeof to != "undefined" ? to : [];
+    this.to = typeof to == "undefined" ? [] : to;
   }
   
   var RoomInfo = function(name, radius) {
@@ -41,13 +51,17 @@ var Chat = function() {
   var socket = null;
   
   var open = function() {
-    console.log("Connected");
+    changeState(states.OPEN);
     getLocation(function(pos) {
       send(types.LOCATION, pos);
+      changeState(states.WAITING_ROOM_INFO);
     });
   }
   var close = function() {
-    console.log("Disconnected");
+    changeState(states.CLOSED);
+    setTimeout(function() {
+      connect();
+    }, 1500); // reconnect
   }
   var error = function() {
     console.log("Error");
@@ -55,7 +69,7 @@ var Chat = function() {
   }
   var message = function(m) {
     var message = JSON.parse(m.data);
-    if (typeof message.type == 'undefined');
+    if (typeof message.type == 'undefined') console.log("Error: No message type");
     switch(message.type) {
       case types.LOCATION:
         getLocation(function(pos) {
@@ -66,18 +80,14 @@ var Chat = function() {
         receiveMessage(message.from, message.content);
         break;
       case types.ROOM_INFO:
-        roomInfoRequest(function(roomInfo) {
-          send(types.ROOM_INFO, roomInfo);
+        exports.roomInfoRequest(function(name, radius) {
+          send(types.ROOM_INFO, new RoomInfo(name, radius));
+          changeState(states.WAITING_CLIENT_INFO);
         });
         break;
       case types.CLIENT_INFO:
-        if (typeof message.clientName == 'undefined') {
-          for(var i = 0; i < message.names.length; i++) {
-            var status = message.change ? 'joined' : 'left';
-            receiveMessage('System', message.names[i] + ' has ' + status + ' the room');
-          }
-        } else {
-          joinRoom();
+        if (state == states.WAITING_CLIENT_INFO) {
+          changeState(states.READY);
           receiveMessage('System', 'Welcome to ' + message.roomName + ', you are the ' + message.clientName);
           message.names.splice(message.names.indexOf(message.clientName), 1);
           if (message.names.length > 0) {
@@ -85,8 +95,15 @@ var Chat = function() {
             for (var i = 1; i < message.names.length; i++) names += ', ' + message.names[i];
             receiveMessage('System', names);
           }
+        } else {
+          for(var i = 0; i < message.names.length; i++) {
+            var status = message.change ? 'joined' : 'left';
+            receiveMessage('System', message.names[i] + ' has ' + status + ' the room');
+          }
         }
+        break;
       default:
+        console.log("Error: undefined behaviour with post: \n" + m.data);
         break;
     }
   }
@@ -107,40 +124,48 @@ var Chat = function() {
     socket.send(JSON.stringify(message));
   }
   
-  function escapeHtml(unsafe) {
-    if (typeof unsafe == 'undefined') return '';
-    var safe = unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    return safe;
-  }
-  
   function receiveMessage(from, content) {
     exports.onMessage(escapeHtml(from), escapeHtml(content));
   }
   
-  function roomInfoRequest(callback) {
-    exports.getRoomInfo(function(name, radius) {
-      callback(new RoomInfo(name, radius));
-    });
+  function checkState(needle, haystack) {
+    if (typeof haystack == 'number') haystack = [haystack];
+    return ~haystack.indexOf(needle);
   }
   
-  function joinRoom() {
-    exports.onJoin();
+  function changeState(newState) {
+    if (state != newState) {
+      state = newState;
+      exports.onStateChange(newState);
+    }
   }
   
-  exports.onJoin = function() {
-    console.log("Joined room!");
-  }
-  
-  exports.getRoomInfo = function(callback) {
-    callback("Test Room", 150);
+  exports.states = states;
+  exports.onStateChange = function(s) {
+    console.log("Changed state!");
+    switch(s) {
+      case states.CLOSED:
+        console.log("Not connected :(");
+        break;
+      case states.OPEN:
+        console.log("Connected!");
+        break;
+      case states.WAITING_ROOM_INFO:
+        console.log("Waiting for room info request");
+        break;
+      case states.WAITING_CLIENT_INFO:
+        console.log("Server waiting for client info");
+        break;
+      case states.READY:
+        console.log("Time to post!");
+        break;
+    }
   }
   exports.onMessage = function(from, content) {
     console.log(from + ": " + content);
+  }
+  exports.roomInfoRequest = function(callback) {
+    callback("Test Room", 150);
   }
   exports.send = function(message) {
     var post = new Post(message);
@@ -166,13 +191,34 @@ chat.onMessage = function(from, content) {
   document.querySelector('#chat ul').appendChild(li);
   if (bottom) div.scrollTop = div.scrollHeight - div.offsetHeight;
 }
-chat.getRoomInfo = function(callback) {
+chat.roomInfoRequest = function(callback) {
   splashForm(function(name, radius) {
     callback(name, radius);
   });
 }
-chat.onJoin = function() {
-  removeSplash();
+chat.onStateChange = function(state) {
+  var states = chat.states;
+  switch(state) {
+    case states.CLOSED:
+      console.log("State change: CLOSED");
+      chat.onMessage("System", "Connection closed");
+      break;
+    case states.OPEN:
+      console.log("State change: OPEN");
+      console.log("Made connection!");
+      break;
+    case states.READY:
+      console.log("State change: READY");
+      resetChat();
+      removeSplash();
+      break;
+    case states.WAITING_ROOM_INFO:
+      console.log("State change: WAITING FOR ROOM INFO REQ");
+      break;
+    case states.WAITING_CLIENT_INFO:
+      console.log("State change: WAITING FOR CLIENT INFO");
+      break;
+  }
 }
 document.querySelector("#chat-form").onsubmit = function(e) {
   e.preventDefault();
@@ -239,6 +285,11 @@ var resetSplash = function() {
   hide(form);
 }
 
+var resetChat = function() {
+  var chatList = document.querySelector("#chat-list ul");
+  chatList.innerHTML = "";
+}
+
 document.querySelector("#splash input[name=room-radius]").addEventListener("input", function(e) {
   document.querySelector("#radius-label").innerHTML = document.querySelector("#splash input[name=room-radius]").value;
 }, false);
@@ -259,7 +310,7 @@ function transitionEndEventName() {
       el = document.createElement('div'),
       transitions = {
         'transition':'transitionend',
-        'OTransition':'otransitionend',  // oTransitionEnd in very old Opera
+        'OTransition':'otransitionend', // oTransitionEnd in very old Opera
         'MozTransition':'transitionend',
         'WebkitTransition':'webkitTransitionEnd'
       };
@@ -268,4 +319,15 @@ function transitionEndEventName() {
       return transitions[i];
     }
   }
+}
+
+function escapeHtml(unsafe) {
+  if (typeof unsafe == 'undefined') return '';
+  var safe = unsafe
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  return safe;
 }

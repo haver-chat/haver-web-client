@@ -131,4 +131,11 @@ div.screen {
 
 #splash input[type=submit] {
   width: auto;
+  background: linear-gradient(0deg, #D7D7D8, #E4E4E5);
+  border-radius: 3px;
+}
+#splash input[type=submit]:active {
+  box-shadow: inset 0px 0px 10px 0px rgba(0,0,0, 0.1);
+  background: linear-gradient(180deg, #D7D7D8, #E4E4E5);
+  border-radius: 3px;
 }
