@@ -16,6 +16,7 @@ var Chat = function() {
   };
   
   var state = states.CLOSED;
+  var socket = null;
   
   function getLocation(callback) {
     function ret(pos) {
@@ -47,8 +48,6 @@ var Chat = function() {
     this.radius = radius;
   }
   
-  var socket = null;
-  
   var open = function() {
     changeState(states.OPEN);
     getLocation(function(pos) {
@@ -64,7 +63,7 @@ var Chat = function() {
   }
   var error = function() {
     console.log("Error");
-    close();
+    socket.close();
   }
   var message = function(m) {
     var message = JSON.parse(m.data);
@@ -120,6 +119,7 @@ var Chat = function() {
   
   var send = function(type, message) {
     message['type'] = type;
+    console.log("Sending message["+type+"]: " + JSON.stringify(message));
     socket.send(JSON.stringify(message));
   }
   
