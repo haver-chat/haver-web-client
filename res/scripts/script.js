@@ -50,10 +50,6 @@ var Chat = function() {
   
   var open = function() {
     changeState(states.OPEN);
-    getLocation(function(pos) {
-      send(types.LOCATION, pos);
-      changeState(states.WAITING);
-    });
   }
   var close = function() {
     changeState(states.CLOSED);
@@ -66,6 +62,7 @@ var Chat = function() {
     socket.close();
   }
   var message = function(m) {
+    console.log(m);
     var message = JSON.parse(m.data);
     if (typeof message.type == 'undefined') console.log("Error: No message type");
     switch(message.type) {
@@ -109,7 +106,7 @@ var Chat = function() {
   var connect = function() {
     var hostname = location.host;
     var protocol = location.protocol.split('http').join('ws') + '//';
-    var host = (hostname == '' || hostname == 'local.haver.chat') ? 'ws://127.0.0.1:8080' : protocol + location.host + '/soc';
+    var host = (hostname == '' || hostname == 'local.haver.chat') ? 'ws://127.0.0.1:8080' : protocol + 'ws.' + location.host;
     socket = new WebSocket(host);
     socket.onopen = open;
     socket.onclose = close;
@@ -200,22 +197,21 @@ chat.onStateChange = function(state) {
   chat.state = state;
   switch(state) {
     case states.CLOSED:
-      console.log("State change: CLOSED");
-      chat.onMessage("System", "Connection closed");
+      notify.log("Connection closed");
       break;
     case states.OPEN:
-      console.log("State change: OPEN");
+      notify.log("Connection opened");
       break;
     case states.READY:
-      console.log("State change: READY");
+      notify.clear();
       resetChat();
       removeSplash();
       break;
     case states.WAITING:
-      console.log("State change: WAITING FOR SERVER MESSAGE");
+      notify.log("Waiting~");
       break;
     default:
-      console.log("Undefined behaviour: invalid state");
+      notify.log("Undefined behaviour: invalid state");
       break;
   }
 }
@@ -329,4 +325,19 @@ function escapeHtml(unsafe) {
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
   return safe;
+}
+
+var notify = {
+  timeout: null,
+  log: function(string) {
+    var div = document.querySelector('#notification');
+    div.innerHTML = escapeHtml(string);
+    if (!div.classList.contains('visible')) div.classList.add('visible');
+    clearTimeout(this.timeout);
+    this.timeout = setTimeout(this.clear, 5000);
+  },
+  clear: function() {
+    var div = document.querySelector('#notification');
+    if (div.classList.contains('visible')) div.classList.remove('visible');
+  }
 }
